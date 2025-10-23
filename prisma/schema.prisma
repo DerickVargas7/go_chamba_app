@@ -1,0 +1,305 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model Usuario {
+    id             String   @id @default(cuid())
+    email          String   @unique
+    password       String?
+    esActivo       Boolean  @default(true)
+    creadoEn       DateTime @default(now())
+    es_configurado Boolean  @default(false)
+    actualizadoEn  DateTime @updatedAt
+    telefono       String?  @unique
+    googleId       String?  @unique
+    departamento   String?
+    tiene_whatsapp Boolean  @default(false)
+
+    // Relaciones
+    perfil             Perfil?
+    roles              UsuarioRol[]
+    solicitudesCliente SolicitudServicio[] @relation("SolicitudesCliente")
+    reseñasDadas      Reseña[]           @relation("AutorReseña")
+    reseñasRecibidas  Reseña[]           @relation("ObjetivoReseña")
+
+    //  Relaciones Admin
+    perfilAdmin     PerfilAdmin?
+    moderaciones    ModeracionServicio[] @relation("AdminModerador")
+    reportesCreados ReporteServicio[]    @relation("UsuarioReportador")
+
+    @@map("usuarios")
+}
+
+// Tabla intermedia para roles flexibles
+model UsuarioRol {
+    id        String  @id @default(cuid())
+    usuarioId String
+    rol       TipoRol
+
+    usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+    @@unique([usuarioId, rol])
+    @@map("usuario_roles")
+}
+
+//  Perfil de Administrador
+model PerfilAdmin {
+    id        String     @id @default(cuid())
+    usuarioId String     @unique
+    nivel     NivelAdmin @default(MODERADOR)
+    permisos  String[] // Array de permisos específicos
+    esActivo  Boolean    @default(true)
+
+    creadoEn      DateTime @default(now())
+    actualizadoEn DateTime @updatedAt
+
+    usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+    @@map("perfiles_admin")
+}
+
+// ==============================
+// PERFIL
+// ==============================
+
+model Perfil {
+    id             String  @id @default(cuid())
+    usuarioId      String  @unique
+    nombreCompleto String
+    fotoUrl        String // obligatorio
+    telefono       String
+    direccion      String?
+
+    creadoEn      DateTime @default(now())
+    actualizadoEn DateTime @updatedAt
+
+    // Relaciones
+    usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+    perfilTrabajador PerfilTrabajador?
+
+    @@map("perfiles")
+}
+
+model PerfilTrabajador {
+    id              String   @id @default(cuid())
+    perfilId        String   @unique
+    estaDisponible  Boolean  @default(true)
+    creadoEn        DateTime @default(now())
+    actualizadoEn   DateTime @updatedAt
+    descripcion     String
+    carnetIdentidad String   @unique
+
+    // Relaciones
+    perfil    Perfil             @relation(fields: [perfilId], references: [id], onDelete: Cascade)
+    trabajos  TrabajadorOficio[]
+    servicios Servicio[]
+
+    @@map("perfiles_trabajador")
+}
+
+// ==============================
+// OFICIOS Y SERVICIOS
+// ==============================
+model Oficio {
+    id          String  @id @default(cuid())
+    nombre      String  @unique
+    descripcion String?
+    esActivo    Boolean @default(true)
+
+    trabajadores TrabajadorOficio[]
+    servicios    Servicio[]
+
+    @@map("oficios")
+}
+
+model TrabajadorOficio {
+    id                 String   @id @default(cuid())
+    perfilTrabajadorId String
+    oficioId           String
+    creadoEn           DateTime @default(now())
+
+    perfil PerfilTrabajador @relation(fields: [perfilTrabajadorId], references: [id], onDelete: Cascade)
+    oficio Oficio           @relation(fields: [oficioId], references: [id])
+
+    @@unique([perfilTrabajadorId, oficioId])
+    @@map("trabajador_oficios")
+}
+
+model Servicio {
+    id                 String           @id @default(cuid())
+    trabajadorOficioId String
+    titulo             String
+    descripcion        String
+    precio             Float
+    esActivo           Boolean          @default(true)
+    estadoModeracion   EstadoModeracion @default(PENDIENTE)
+
+    creadoEn           DateTime             @default(now())
+    actualizadoEn      DateTime             @updatedAt
+    imagenes           ImagenServicio[]
+    solicitudes        SolicitudServicio[]
+    moderaciones       ModeracionServicio[]
+    reportes           ReporteServicio[]
+    PerfilTrabajador   PerfilTrabajador?    @relation(fields: [perfilTrabajadorId], references: [id])
+    perfilTrabajadorId String?
+    Oficio             Oficio?              @relation(fields: [oficioId], references: [id])
+    oficioId           String?
+
+    @@index([estadoModeracion, creadoEn])
+    @@map("servicios")
+}
+
+model ModeracionServicio {
+    id             String           @id @default(cuid())
+    servicioId     String
+    adminId        String
+    accion         AccionModeracion
+    estadoAnterior EstadoModeracion
+    estadoNuevo    EstadoModeracion
+    motivo         String? // Razón del rechazo/aprobación
+    notas          String? // Notas internas del admin
+
+    creadoEn DateTime @default(now())
+
+    servicio Servicio @relation(fields: [servicioId], references: [id], onDelete: Cascade)
+    admin    Usuario  @relation("AdminModerador", fields: [adminId], references: [id])
+
+    @@index([servicioId, creadoEn])
+    @@index([adminId, creadoEn])
+    @@map("moderaciones_servicio")
+}
+
+//  Reportes de Servicios
+model ReporteServicio {
+    id          String        @id @default(cuid())
+    servicioId  String
+    usuarioId   String
+    motivo      MotivoReporte
+    descripcion String?
+    estado      EstadoReporte @default(PENDIENTE)
+
+    // Si el admin toma acción
+    resueltoEn DateTime?
+    resolucion String? // Explicación de la resolución
+
+    creadoEn      DateTime @default(now())
+    actualizadoEn DateTime @updatedAt
+
+    servicio Servicio @relation(fields: [servicioId], references: [id], onDelete: Cascade)
+    usuario  Usuario  @relation("UsuarioReportador", fields: [usuarioId], references: [id])
+
+    // Un usuario solo puede reportar un servicio una vez
+    @@unique([servicioId, usuarioId])
+    @@index([estado, creadoEn])
+    @@map("reportes_servicio")
+}
+
+model ImagenServicio {
+    id         String @id @default(cuid())
+    servicioId String
+    imagenUrl  String
+    orden      Int    @default(0)
+
+    servicio Servicio @relation(fields: [servicioId], references: [id], onDelete: Cascade)
+
+    @@map("imagenes_servicio")
+}
+
+// ==============================
+// SOLICITUDES Y RESEÑAS
+// ==============================
+model SolicitudServicio {
+    id              String          @id @default(cuid())
+    clienteId       String
+    servicioId      String
+    estado          EstadoSolicitud @default(PENDIENTE)
+    mensaje         String?
+    fechaSolicitada DateTime?
+
+    creadoEn      DateTime @default(now())
+    actualizadoEn DateTime @updatedAt
+
+    cliente  Usuario   @relation("SolicitudesCliente", fields: [clienteId], references: [id])
+    servicio Servicio  @relation(fields: [servicioId], references: [id])
+    reseñas Reseña[]
+
+    @@map("solicitudes_servicio")
+}
+
+model Reseña {
+    id           String  @id @default(cuid())
+    autorId      String
+    objetivoId   String
+    solicitudId  String?
+    calificacion Int     @db.SmallInt
+    comentario   String?
+
+    creadoEn      DateTime @default(now())
+    actualizadoEn DateTime @updatedAt
+
+    autor     Usuario            @relation("AutorReseña", fields: [autorId], references: [id])
+    objetivo  Usuario            @relation("ObjetivoReseña", fields: [objetivoId], references: [id])
+    solicitud SolicitudServicio? @relation(fields: [solicitudId], references: [id], onDelete: SetNull)
+
+    @@unique([autorId, objetivoId, solicitudId])
+    @@map("reseñas")
+}
+
+// ==============================
+// ENUMS
+// ==============================
+enum TipoRol {
+    CLIENTE
+    TRABAJADOR
+    ADMIN // 
+}
+
+enum EstadoSolicitud {
+    PENDIENTE
+    ACEPTADA
+    RECHAZADA
+    COMPLETADA
+    CANCELADA
+}
+
+enum EstadoModeracion {
+    PENDIENTE // Esperando revisión admin
+    APROBADO // Visible para todos
+    RECHAZADO // No visible, con motivo
+    SUSPENDIDO // Temporalmente oculto
+}
+
+enum AccionModeracion {
+    APROBAR
+    RECHAZAR
+    SUSPENDER
+    REACTIVAR
+}
+
+enum NivelAdmin {
+    MODERADOR // Solo moderar contenido
+    ADMINISTRADOR // Acceso completo
+    SUPER_ADMIN // Gestiona otros admins
+}
+
+enum MotivoReporte {
+    CONTENIDO_INAPROPIADO
+    INFORMACION_FALSA
+    SPAM
+    PRECIO_FRAUDULENTO
+    SERVICIO_ILEGAL
+    OTRO
+}
+
+enum EstadoReporte {
+    PENDIENTE // Sin revisar
+    EN_REVISION // Admin lo está revisando
+    RESUELTO // Admin tomó acción
+    DESESTIMADO // Reporte sin fundamento
+}
