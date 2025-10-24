@@ -7,5 +7,5 @@ export const getAllServicesController = async (req, res) => {
         return res.json(services);
     }
     catch(error){}
-    res.error(500).json({error: "Error al obtener los oficios"});
+    res.status(500).json({error: "Error al obtener los oficios"});
     }
