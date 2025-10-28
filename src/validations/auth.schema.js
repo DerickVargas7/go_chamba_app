@@ -16,10 +16,10 @@ export const googleCompleteSchema = Joi.object({
     "Chuquisaca"
   ).required(),
    telefono: Joi.string()
-    .pattern(/^[0-9]{7,10}$/)
+    .pattern(/^[0-9]{8}$/)
     .required()
     .messages({
-      'string.pattern.base': 'Solo se aceptan caracteres numéricos',
+      'string.pattern.base': 'El teléfono debe contener solo números y tener exactamente 8 dígitos',
       'string.empty': 'El teléfono es requerido',
       'any.required': 'El teléfono es requerido'
     }),
@@ -49,10 +49,10 @@ export const createUserSchema = Joi.object({
     "Chuquisaca"
   ).required(),
    telefono: Joi.string()
-    .pattern(/^[0-9]{7,10}$/)
+    .pattern(/^[0-9]{8}$/)
     .required()
     .messages({
-      'string.pattern.base': 'Solo se aceptan caracteres numéricos',
+      'string.pattern.base': 'El teléfono debe contener solo números y tener exactamente 8 dígitos',
       'string.empty': 'El teléfono es requerido',
       'any.required': 'El teléfono es requerido'
     }),
