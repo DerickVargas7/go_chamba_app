@@ -40,3 +40,11 @@ export const createWorkerSchema = Joi.object({
       "array.max": "Solo puedes seleccionar hasta 3 oficios.",
     }),
 });
+
+
+export const createPublicationSchema = Joi.object({
+  titulo: Joi.string(),
+  descripcion: Joi.string(),
+  precio: Joi.number(),
+  
+})

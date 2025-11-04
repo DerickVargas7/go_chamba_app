@@ -1,7 +1,7 @@
 import express from 'express';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
-import cors from 'cors';
+//import cors from 'cors';
 import authRoutes from './src/routes/auth.routes.js';
 import workRoutes from './src/routes/service.routes.js';
 import workerRoutes from './src/routes/worker.routes.js';
@@ -14,12 +14,6 @@ const port = process.env.PORT;
 
 app.use(morgan('dev'));
 app.use(express.json());
-
-app.use(cors({
-  origin: '*', // Permite cualquier dominio
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Métodos permitidos
-  allowedHeaders: ['Content-Type', 'Authorization'], // Cabeceras permitidas
-}));
 
 app.get('/', (req, res) => {
   res.send('<title>Gochamba</title><h1>Bienvenido al backend de Gochamba</h1>');

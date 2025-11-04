@@ -1,10 +1,63 @@
 import express from "express";
+import multer from "multer";
 import { createWorkerSchema } from "../validations/worker.schema.js";
 import { validateSchema } from "../middlewares/schema/validateSchema.middleware.js";
-import { registerWorkerController } from "../controllers/worker.controller.js"
+import { registerWorkerController,
+         createPublicationController ,
+         listPublicationsController,
+         updatePublicationController,
+         addServiceImagesController,
+         deleteServiceImageController
+        } from "../controllers/worker.controller.js"
+import { uploadMultipleImagesController } from "../controllers/cloudinary/cloudinary.controller.js";
 import { verifyToken } from "../middlewares/auth.middleware.js";
+const upload = multer({ dest: "uploads/" });
 
 const router  = express.Router();
-router.post("/worker/register-worker",verifyToken, validateSchema(createWorkerSchema), registerWorkerController);
+//ruta para registrar trabajador
+router.post(
+    "/worker/register-worker",
+    verifyToken, 
+    validateSchema(createWorkerSchema), 
+    registerWorkerController
+);
+ //ruta para subir imagenes de servicio
+router.post(
+  "/worker/upload-service-images",
+  verifyToken, 
+  upload.array("imagenes", 3),
+  uploadMultipleImagesController
+);
+//ruta para crear publicacion de servicio
+router.post(
+  "/worker/publication",
+  verifyToken,
+  createPublicationController
+);
+
+//ruta para listar publicaciones de trabajador
+router.get(
+  '/worker/publications', 
+  verifyToken, 
+  listPublicationsController);
+
+//ruta para actualizar publicacion de servicio
+router.put("/services/:id",
+   verifyToken, 
+   updatePublicationController);
+
+//ruta para agregar imagenes a servicio
+router.post(
+  "/worker/service/:id/images",
+  verifyToken,
+  addServiceImagesController
+);
+
+//ruta para eliminar imagen de servicio
+router.delete(
+  "/services/:id/images/:imagenId",
+  verifyToken,
+  deleteServiceImageController
+);  
 
 export default router;
