@@ -11,15 +11,13 @@ export const listAllPublicationsService = async ({
   pageSize = 10,
   buscar,
   oficioId,
-  order = "desc",
+  precioMin,
+  precioMax,
 }) => {
   const skip = (Number(page) - 1) * Number(pageSize);
   const take = Number(pageSize);
 
-  const where = {
-    esActivo: true,
-    estadoModeracion: "PENDIENTE",  //cambiar despues
-  };
+  const where = {};
 
   if (buscar && buscar.trim()) {
     where.OR = [
@@ -29,13 +27,19 @@ export const listAllPublicationsService = async ({
   }
 
   if (oficioId) {
-    where.oficioId = oficioId;
+    where.oficioId = String(oficioId);
+  }
+
+  if (precioMin || precioMax) {
+    where.precio = {};
+    if (precioMin) where.precio.gte = parseFloat(precioMin);
+    if (precioMax) where.precio.lte = parseFloat(precioMax);
   }
 
   const [items, total] = await Promise.all([
     prisma.servicio.findMany({
       where,
-      orderBy: { creadoEn: order === "asc" ? "asc" : "desc" },
+      orderBy: { creadoEn: "desc" },
       skip,
       take,
       include: {

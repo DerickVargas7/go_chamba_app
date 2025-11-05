@@ -66,7 +66,7 @@ export const findOrCreateGoogleUser = async (payload) => {
 
 // finalizar el registro del usuario
 export const completeGoogleRegistration = async (data) => {
-  const { userId, nombreCompleto, direccion, departamento, telefono, password, confirmPassword, fotoUrl, tiene_whatsapp } = data;
+  const { userId, nombreCompleto, direccion, departamento, telefono, password, fotoUrl, tiene_whatsapp } = data;
 
   const user = await prisma.usuario.findUnique({ where: { id: userId }, include: { perfil: true } });
   if (!user) throw new Error("Usuario no encontrado");
@@ -102,30 +102,21 @@ export const completeGoogleRegistration = async (data) => {
 
   return updatedUser;
 };
+
 export const createUserService = async (data) => {
-  const {email, password, nombreCompleto, telefono,fotoUrl,direccion,departamento,tiene_whatsapp} = data;
+  const {email, password, nombreCompleto, telefono, fotoUrl, direccion, departamento, tiene_whatsapp} = data;
 
-  // Verificar si ya existe el usuario
-  const existingUser = await prisma.usuario.findUnique({ where: { email } });
-  if (existingUser) {
-    throw new Error("El correo electrónico ya está registrado.");
-  }
+  // ... validaciones ...
 
-  const existingPhone = await prisma.usuario.findUnique({ where: { telefono } });
-if (existingPhone) {
-  throw new Error("El número de teléfono ya está registrado.");
-}
-  // hasheamos la contraseña 
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  // Transacción: crear usuario + rol CLIENTE
   const [user] = await prisma.$transaction(async (tx) => {
     const createdUser = await tx.usuario.create({
       data: {
         email,
         password: hashedPassword,
         departamento,
-        es_configurado: true, // el usuario completó su configuracion
+        es_configurado: true,
         tiene_whatsapp: tiene_whatsapp,
         perfil: {
           create: {
@@ -139,7 +130,6 @@ if (existingPhone) {
       include: { perfil: true },
     });
 
-    // Asignar rol CLIENTE
     await tx.usuarioRol.create({
       data: {
         usuarioId: createdUser.id,
@@ -150,29 +140,27 @@ if (existingPhone) {
     return [createdUser];
   });
 
-  const token = generateAppToken(user.id);
+  const token = generateAppToken({
+    usuarioId: user.id,
+    perfilId: user.perfil.id,
+    perfilTrabajadorId: null, // nuevo usuario solo es CLIENTE
+    roles: ['CLIENTE']
+  });
 
   return { user, token };
 };
 
-
 export const loginUserService = async (email, password) => {
-  // Buscar usuario con su perfil y roles
   const user = await prisma.usuario.findUnique({
     where: { email },
     include: {
       perfil: true,
-      roles: true
+      roles: true,
     },
   });
 
   if (!user) {
-    throw new Error("Credenciales inválidas. El usuario no existe.");
-  }
-  if (!user.password) {
-    throw new Error(
-      "El correo electrónico está registrado mediante una cuenta de Google."
-    );
+    throw new Error("Credenciales inválidas. Revise su correo y contraseña.");
   }
 
   const isPasswordValid = await bcrypt.compare(password, user.password);
@@ -180,20 +168,30 @@ export const loginUserService = async (email, password) => {
     throw new Error("Contraseña incorrecta.");
   }
 
-  // Generar token
-  const token = generateAppToken(user.id);
-
-  // Verificar si el usuario tiene el rol de TRABAJADOR
   const es_trabajador = user.roles.some((rol) => rol.rol === "TRABAJADOR");
+  
+  let perfilTrabajadorId = null;
+  if (es_trabajador) {
+    const perfilTrabajador = await prisma.perfilTrabajador.findUnique({
+      where: { perfilId: user.perfil.id },
+      select: { id: true }
+    });
+    perfilTrabajadorId = perfilTrabajador?.id || null;
+  }
 
-  // Limpiar datos sensibles
+  const token = generateAppToken({
+    usuarioId: user.id,
+    perfilId: user.perfil.id,
+    perfilTrabajadorId,
+    roles: user.roles.map(r => r.rol)
+  });
+
   const { password: _, ...userWithoutPassword } = user;
 
-  // Retornar datos finales
   return {
     user: {
       ...userWithoutPassword,
-      es_trabajador, 
+      es_trabajador,
     },
     token,
   };

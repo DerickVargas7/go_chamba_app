@@ -11,6 +11,7 @@ import { registerWorkerController,
         } from "../controllers/worker.controller.js"
 import { uploadMultipleImagesController } from "../controllers/cloudinary/cloudinary.controller.js";
 import { verifyToken } from "../middlewares/auth.middleware.js";
+import { requireRole } from "../middlewares/requireRole.middleware.js";   
 const upload = multer({ dest: "uploads/" });
 
 const router  = express.Router();
@@ -18,6 +19,7 @@ const router  = express.Router();
 router.post(
     "/worker/register-worker",
     verifyToken, 
+    requireRole("TRABAJADOR"),
     validateSchema(createWorkerSchema), 
     registerWorkerController
 );
@@ -25,31 +27,38 @@ router.post(
 router.post(
   "/worker/upload-service-images",
   verifyToken, 
+  requireRole("TRABAJADOR"),
   upload.array("imagenes", 3),
   uploadMultipleImagesController
 );
 //ruta para crear publicacion de servicio
 router.post(
   "/worker/publication",
+ 
   verifyToken,
+  requireRole("TRABAJADOR"),
   createPublicationController
 );
 
 //ruta para listar publicaciones de trabajador
 router.get(
   '/worker/publications', 
-  verifyToken, 
+  
+  verifyToken,
+  requireRole("TRABAJADOR"),
   listPublicationsController);
 
 //ruta para actualizar publicacion de servicio
-router.put("/services/:id",
+router.patch("/services/:id",
    verifyToken, 
+   requireRole("TRABAJADOR"),
    updatePublicationController);
 
 //ruta para agregar imagenes a servicio
 router.post(
   "/worker/service/:id/images",
   verifyToken,
+  requireRole("TRABAJADOR"),
   addServiceImagesController
 );
 
@@ -57,6 +66,7 @@ router.post(
 router.delete(
   "/services/:id/images/:imagenId",
   verifyToken,
+   requireRole("TRABAJADOR"),
   deleteServiceImageController
 );  
 
