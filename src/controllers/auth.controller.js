@@ -12,11 +12,20 @@ export const verifyGoogleAuth = async (req, res) => {
   try {
     const { id_token } = req.body;
     const payload = await verifyGoogleToken(id_token);
+
+    // Buscar o crear usuario
     const { user, wasCreated } = await findOrCreateGoogleUser(payload);
 
-    const token = generateAppToken(user.id);
+    // Construir token con toda la info necesaria
+    const token = generateAppToken({
+      id: user.id,
+      perfilId: user.perfil?.id,
+      perfilTrabajadorId: user.perfil?.perfilTrabajador?.id,
+      roles: user.roles || [],
+    });
 
     return res.json({
+      success: true,
       token,
       user,
       wasCreated,
@@ -26,9 +35,11 @@ export const verifyGoogleAuth = async (req, res) => {
         : "Inicio de sesión con Google exitoso",
     });
   } catch (error) {
+    console.error("Error en verifyGoogleAuth:", error);
     res.status(500).json({ error: "Error verificando Google token" });
   }
 };
+
 
 export const completeGoogleRegistration = async (req, res) => {
   try {
