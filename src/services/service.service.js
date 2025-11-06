@@ -89,3 +89,38 @@ export const listAllPublicationsService = async ({
     },
   };
 };
+
+
+export const getServiceByIdService = async (servicioId) => {
+  const servicio = await prisma.servicio.findUnique({
+    where: { id: servicioId },
+    include: {
+      imagenes: { 
+        select: { 
+          id: true,
+          imagenUrl: true,
+          orden: true
+        },
+        orderBy: { orden: 'asc' } // Para que vengan ordenadas
+      },
+      Oficio: { select: { id: true, nombre: true } },
+    },
+  });
+
+  if (!servicio) throw new Error("Servicio no encontrado.");
+
+  return {
+    id: servicio.id,
+    titulo: servicio.titulo,
+    descripcion: servicio.descripcion,
+    precio: servicio.precio,
+    categoria: servicio.Oficio
+      ? { id: servicio.Oficio.id, nombre: servicio.Oficio.nombre }
+      : { id: null, nombre: "Sin categoría" },
+    imagenes: servicio.imagenes.map((img) => ({
+      id: img.id,
+      imagenUrl: img.imagenUrl,
+      orden: img.orden
+    }))
+  };
+};

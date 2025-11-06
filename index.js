@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import authRoutes from './src/routes/auth.routes.js';
 import workRoutes from './src/routes/service.routes.js';
 import workerRoutes from './src/routes/worker.routes.js';
+import clientRoutes from './src/routes/client.routes.js';
 
 dotenv.config();
 
@@ -25,6 +26,8 @@ app.use("/api", authRoutes);
 app.use("/api", workRoutes);
 
 app.use("/api", workerRoutes);
+
+app.use("/api", clientRoutes);
 
 
 

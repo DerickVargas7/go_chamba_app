@@ -1,4 +1,4 @@
-import { getAllServices, listAllPublicationsService} from "../services/service.service.js";
+import { getAllServices, listAllPublicationsService, getServiceByIdService} from "../services/service.service.js";
 
 
 export const getAllServicesController = async (req, res) => {
@@ -36,5 +36,17 @@ export const listAllPublicationsController = async (req, res) => {
       error: "Error al obtener los servicios",
       details: error.message,
     });
+  }
+};
+
+
+export const getServiceByIdController = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const servicio = await getServiceByIdService(id);
+
+    res.status(200).json({ success: true, data: servicio });
+  } catch (error) {
+    res.status(404).json({ success: false, error: error.message });
   }
 };

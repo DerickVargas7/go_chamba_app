@@ -19,7 +19,7 @@ const router  = express.Router();
 router.post(
     "/worker/register-worker",
     verifyToken, 
-    requireRole("TRABAJADOR"),
+    requireRole("CLIENTE"),
     validateSchema(createWorkerSchema), 
     registerWorkerController
 );

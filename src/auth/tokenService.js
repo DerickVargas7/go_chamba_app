@@ -1,8 +1,12 @@
-//generar token jwt
 import jwt from "jsonwebtoken";
-const JWT_SECRET = process.env.JWT_SECRET; 
 
 export const generateAppToken = (payload) => {
+  const JWT_SECRET = process.env.JWT_SECRET; 
+  
+  if (!JWT_SECRET) {
+    throw new Error('JWT_SECRET no está configurado en las variables de entorno');
+  }
+
   return jwt.sign(
     {
       usuarioId: payload.usuarioId,
@@ -13,4 +17,18 @@ export const generateAppToken = (payload) => {
     JWT_SECRET,
     { expiresIn: "7d" }
   );
+};
+
+export const verifyAppToken = (token) => {
+  const JWT_SECRET = process.env.JWT_SECRET;
+  
+  if (!JWT_SECRET) {
+    throw new Error('JWT_SECRET no está configurado');
+  }
+
+  try {
+    return jwt.verify(token, JWT_SECRET);
+  } catch (error) {
+    throw new Error('Token inválido o expirado');
+  }
 };
