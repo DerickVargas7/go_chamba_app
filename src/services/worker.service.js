@@ -86,17 +86,17 @@ export const createPublicationService = async (perfilTrabajadorId, data, imagene
 
 export async function listPublicationsService(
   perfilTrabajadorId,
-  { page = 1, pageSize = 10, estado, buscar, order = 'desc', oficioId }
+  { page = 1, pageSize = 10, estado, buscar, order = "desc", oficioId }
 ) {
   const where = { perfilTrabajadorId };
 
   if (estado) where.estadoModeracion = estado;
-  if (typeof oficioId !== 'undefined') where.oficioId = Number(oficioId);
+  if (typeof oficioId !== "undefined") where.oficioId = Number(oficioId);
 
   if (buscar && buscar.trim()) {
     where.OR = [
-      { titulo: { contains: buscar, mode: 'insensitive' } },
-      { descripcion: { contains: buscar, mode: 'insensitive' } },
+      { titulo: { contains: buscar, mode: "insensitive" } },
+      { descripcion: { contains: buscar, mode: "insensitive" } },
     ];
   }
 
@@ -106,20 +106,30 @@ export async function listPublicationsService(
   const [items, total] = await Promise.all([
     prisma.servicio.findMany({
       where,
-      orderBy: { creadoEn: order === 'asc' ? 'asc' : 'desc' },
+      orderBy: { creadoEn: order === "asc" ? "asc" : "desc" },
       skip,
       take,
       include: {
         imagenes: true,
-        Oficio: {              
+        Oficio: {
           select: { id: true, nombre: true },
+        },
+        PerfilTrabajador: {
+          include: {
+            perfil: {
+              select: {
+                nombreCompleto: true,
+                fotoUrl: true,
+                telefono: true,
+              },
+            },
+          },
         },
       },
     }),
     prisma.servicio.count({ where }),
   ]);
 
-  
   const formattedItems = items.map((serv) => ({
     id: serv.id,
     titulo: serv.titulo,
@@ -127,7 +137,14 @@ export async function listPublicationsService(
     precio: serv.precio,
     oficio: serv.Oficio
       ? { id: serv.Oficio.id, nombre: serv.Oficio.nombre }
-      : { id: null, nombre: 'Sin oficio' },
+      : { id: null, nombre: "Sin oficio" },
+    trabajador: serv.PerfilTrabajador?.perfil
+      ? {
+          nombreCompleto: serv.PerfilTrabajador.perfil.nombreCompleto,
+          fotoUrl: serv.PerfilTrabajador.perfil.fotoUrl,
+          telefono: serv.PerfilTrabajador.perfil.telefono,
+        }
+      : { nombreCompleto: "Desconocido", fotoUrl: null, telefono: null },
     imagenes: serv.imagenes.map((img) => img.imagenUrl),
     creadoEn: serv.creadoEn,
     estadoModeracion: serv.estadoModeracion,
@@ -143,6 +160,7 @@ export async function listPublicationsService(
     },
   };
 }
+
 
 
 export const updatePublicationService = async (servicioId, data) => {
