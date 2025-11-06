@@ -1,13 +1,12 @@
 import prisma from "../../config/prismaClient.js";
 
-
 export const registerWorkerService = async (perfilId, data) => {
   const { descripcion, carnetIdentidad, oficios = [] } = data;
 
   const existingWorker = await prisma.perfilTrabajador.findUnique({
     where: { perfilId },
   });
-  
+
   if (existingWorker) {
     throw new Error("El usuario ya está registrado como trabajador.");
   }
@@ -34,7 +33,7 @@ export const registerWorkerService = async (perfilId, data) => {
     const existingRole = await tx.usuarioRol.findFirst({
       where: { usuarioId: data.usuarioId, rol: "TRABAJADOR" },
     });
-    
+
     if (!existingRole) {
       await tx.usuarioRol.create({
         data: {
@@ -50,7 +49,11 @@ export const registerWorkerService = async (perfilId, data) => {
   return result;
 };
 
-export const createPublicationService = async (perfilTrabajadorId, data, imagenesUrls = []) => {
+export const createPublicationService = async (
+  perfilTrabajadorId,
+  data,
+  imagenesUrls = []
+) => {
   const { titulo, descripcion, precio, oficioId } = data;
 
   if (imagenesUrls.length < 1 || imagenesUrls.length > 3) {
@@ -65,7 +68,7 @@ export const createPublicationService = async (perfilTrabajadorId, data, imagene
         descripcion,
         precio: parseFloat(precio),
         perfilTrabajadorId,
-        oficioId: oficioId
+        oficioId: oficioId,
       },
     });
 
@@ -82,7 +85,6 @@ export const createPublicationService = async (perfilTrabajadorId, data, imagene
 
   return result;
 };
-
 
 export async function listPublicationsService(
   perfilTrabajadorId,
@@ -145,7 +147,13 @@ export async function listPublicationsService(
           telefono: serv.PerfilTrabajador.perfil.telefono,
         }
       : { nombreCompleto: "Desconocido", fotoUrl: null, telefono: null },
-    imagenes: serv.imagenes.map((img) => img.imagenUrl),
+    imagenes: serv.imagenes
+      .sort((a, b) => a.orden - b.orden)
+      .map((img) => ({
+        id: img.id,
+        url: img.imagenUrl,
+        orden: img.orden,
+      })),
     creadoEn: serv.creadoEn,
     estadoModeracion: serv.estadoModeracion,
   }));
@@ -161,8 +169,6 @@ export async function listPublicationsService(
   };
 }
 
-
-
 export const updatePublicationService = async (servicioId, data) => {
   const { titulo, descripcion, precio, oficioId } = data;
 
@@ -172,20 +178,22 @@ export const updatePublicationService = async (servicioId, data) => {
 
   const servicio = await prisma.servicio.findUnique({
     where: { id: servicioId },
-    select: { perfilTrabajadorId: true }
+    select: { perfilTrabajadorId: true },
   });
 
   if (!servicio) throw new Error("Servicio no encontrado.");
-  
+
   const updateData = {
     ...(titulo !== undefined && { titulo }),
     ...(descripcion !== undefined && { descripcion }),
-    ...(precio !== undefined && !isNaN(precio) && { precio: parseFloat(precio) }),
+    ...(precio !== undefined &&
+      !isNaN(precio) && { precio: parseFloat(precio) }),
     ...(oficioId !== undefined && { oficioId }),
-    estadoModeracion: "PENDIENTE"
+    estadoModeracion: "PENDIENTE",
   };
 
-  if (Object.keys(updateData).length === 1) { // Solo estadoModeracion
+  if (Object.keys(updateData).length === 1) {
+    // Solo estadoModeracion
     throw new Error("No se enviaron campos válidos para actualizar.");
   }
 
@@ -197,11 +205,14 @@ export const updatePublicationService = async (servicioId, data) => {
   return updated;
 };
 
-
-export const addServiceImagesService = async (perfilTrabajadorId, servicioId, imagenesUrls) => {
+export const addServiceImagesService = async (
+  perfilTrabajadorId,
+  servicioId,
+  imagenesUrls
+) => {
   const servicio = await prisma.servicio.findUnique({
     where: { id: servicioId },
-    select: { perfilTrabajadorId: true }
+    select: { perfilTrabajadorId: true },
   });
 
   if (!servicio) throw new Error("Servicio no encontrado.");
@@ -226,8 +237,11 @@ export const addServiceImagesService = async (perfilTrabajadorId, servicioId, im
   return imagenesUrls;
 };
 
-
-export const deleteServiceImageService = async (perfilTrabajadorId, servicioId, imagenId) => {
+export const deleteServiceImageService = async (
+  perfilTrabajadorId,
+  servicioId,
+  imagenId
+) => {
   const servicio = await prisma.servicio.findUnique({
     where: { id: servicioId },
     select: {
@@ -241,11 +255,9 @@ export const deleteServiceImageService = async (perfilTrabajadorId, servicioId, 
   if (!servicio) throw new Error("Servicio no encontrado.");
   if (servicio.perfilTrabajadorId !== perfilTrabajadorId)
     throw new Error("No autorizado.");
-  if (servicio.imagenes.length === 0)
-    throw new Error("Imagen no encontrada.");
+  if (servicio.imagenes.length === 0) throw new Error("Imagen no encontrada.");
 
   await prisma.imagenServicio.delete({ where: { id: imagenId } });
 
-  return { success: true,
-     imagen_eliminada: imagenId };
+  return { success: true, imagen_eliminada: imagenId };
 };
