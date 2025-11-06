@@ -89,6 +89,7 @@ export async function listPublicationsService(
   { page = 1, pageSize = 10, estado, buscar, order = 'desc', oficioId }
 ) {
   const where = { perfilTrabajadorId };
+
   if (estado) where.estadoModeracion = estado;
   if (typeof oficioId !== 'undefined') where.oficioId = Number(oficioId);
 
@@ -110,13 +111,30 @@ export async function listPublicationsService(
       take,
       include: {
         imagenes: true,
+        Oficio: {              
+          select: { id: true, nombre: true },
+        },
       },
     }),
     prisma.servicio.count({ where }),
   ]);
 
+  
+  const formattedItems = items.map((serv) => ({
+    id: serv.id,
+    titulo: serv.titulo,
+    descripcion: serv.descripcion,
+    precio: serv.precio,
+    oficio: serv.Oficio
+      ? { id: serv.Oficio.id, nombre: serv.Oficio.nombre }
+      : { id: null, nombre: 'Sin oficio' },
+    imagenes: serv.imagenes.map((img) => img.imagenUrl),
+    creadoEn: serv.creadoEn,
+    estadoModeracion: serv.estadoModeracion,
+  }));
+
   return {
-    items,
+    items: formattedItems,
     pagination: {
       page: Number(page),
       pageSize: Number(pageSize),
