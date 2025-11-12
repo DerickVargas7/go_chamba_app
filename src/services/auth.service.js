@@ -21,13 +21,19 @@ export const findOrCreateGoogleUser = async (payload) => {
 
   let user = await prisma.usuario.findUnique({
     where: { email },
-    include: { perfil: true, roles: true },
+    include: {
+      perfil: {
+        include: {
+          perfilTrabajador: true, 
+        },
+      },
+      roles: true,
+    },
   });
 
   let wasCreated = false;
 
   if (!user) {
-    // Transacción: crear usuario + rol
     const [newUser] = await prisma.$transaction(async (tx) => {
       const createdUser = await tx.usuario.create({
         data: {
@@ -41,14 +47,18 @@ export const findOrCreateGoogleUser = async (payload) => {
             },
           },
         },
-        include: { perfil: true },
+        include: {
+          perfil: {
+            include: { perfilTrabajador: true },
+          },
+          roles: true,
+        },
       });
 
-      // Asignar rol CLIENTE
       await tx.usuarioRol.create({
         data: {
           usuarioId: createdUser.id,
-          rol: "CLIENTE",
+          rol: "CLIENTE", // Por defecto cliente
         },
       });
 
@@ -196,4 +206,3 @@ export const loginUserService = async (email, password) => {
     token,
   };
 };
-
