@@ -96,6 +96,8 @@ export const completarSolicitudService = async (clienteId, solicitudId) => {
 
 
 // service
+// service
+// service
 export const getSolicitudesAceptadasService = async (clienteId) => {
   const solicitudes = await prisma.solicitudServicio.findMany({
     where: {
@@ -104,12 +106,27 @@ export const getSolicitudesAceptadasService = async (clienteId) => {
     },
     include: {
       servicio: true,        // incluir el servicio asociado
-      cliente: true,         // incluir el cliente
+      cliente: {             // incluir el cliente asociado
+        include: {           // incluimos el perfil con la foto
+          perfil: {
+            select: {
+              fotoUrl: true,  // seleccionamos solo la fotoUrl
+            },
+          },
+        },
+      },
     },
   });
 
   if (!solicitudes.length) throw new Error("No tienes solicitudes aceptadas.");
 
-  return solicitudes;
+  // Ahora aquí mapeamos para asignar fotoUrl directamente al cliente
+  return solicitudes.map(solicitud => ({
+    ...solicitud,
+    cliente: {
+      ...solicitud.cliente,
+      imagenUrl: solicitud.cliente.perfil?.fotoUrl || null, // asignamos directamente fotoUrl
+    },
+  }));
 };
 
