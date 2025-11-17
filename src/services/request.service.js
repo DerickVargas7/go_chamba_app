@@ -93,11 +93,6 @@ export const completarSolicitudService = async (clienteId, solicitudId) => {
 };
 
 
-
-
-// service
-// service
-// service
 export const getSolicitudesAceptadasService = async (clienteId) => {
   const solicitudes = await prisma.solicitudServicio.findMany({
     where: {
@@ -105,7 +100,24 @@ export const getSolicitudesAceptadasService = async (clienteId) => {
       estado: "ACEPTADA",   // solo solicitudes aceptadas
     },
     include: {
-      servicio: true,        // incluir el servicio asociado
+      servicio: {           // incluir el servicio asociado
+        include: {
+          Oficio: {         // incluir la categoría del servicio (asumimos que es `Oficio`)
+            select: {
+              nombre: true, // obtenemos solo el nombre de la categoría
+            },
+          },
+          PerfilTrabajador: {  // incluir el trabajador asociado
+            include: {
+              perfil: {   // incluir los datos del perfil del trabajador
+                select: {
+                  nombreCompleto: true,  // obtener nombre completo del trabajador
+                },
+              },
+            },
+          },
+        },
+      },
       cliente: {             // incluir el cliente asociado
         include: {           // incluimos el perfil con la foto
           perfil: {
@@ -120,13 +132,21 @@ export const getSolicitudesAceptadasService = async (clienteId) => {
 
   if (!solicitudes.length) throw new Error("No tienes solicitudes aceptadas.");
 
-  // Ahora aquí mapeamos para asignar fotoUrl directamente al cliente
+  // Ahora aquí mapeamos para asignar fotoUrl directamente al cliente y agregar los datos del trabajador y categoría
   return solicitudes.map(solicitud => ({
     ...solicitud,
     cliente: {
       ...solicitud.cliente,
       imagenUrl: solicitud.cliente.perfil?.fotoUrl || null, // asignamos directamente fotoUrl
     },
+    servicio: {
+      ...solicitud.servicio,
+      categoria: solicitud.servicio.Oficio?.nombre || "Sin categoría", // nombre de la categoría (oficio)
+      trabajador: {
+        nombreCompleto: solicitud.servicio.PerfilTrabajador?.perfil?.nombreCompleto || "Desconocido", // nombre completo del trabajador
+      },
+    },
   }));
 };
+
 
