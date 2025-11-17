@@ -2,7 +2,8 @@ import {
   aceptarSolicitudService,
   rechazarSolicitudService,
     getSolicitudesTrabajadorService,
-    completarSolicitudService
+    completarSolicitudService,
+    getSolicitudesAceptadasService
 } from "../services/request.service.js";
 
 export const aceptarSolicitudController = async (req, res) => {
@@ -56,17 +57,37 @@ export const getSolicitudesTrabajadorController = async (req, res) => {
   }
 };
 
+
 export const completarSolicitudController = async (req, res) => {
   try {
-    const { perfilTrabajadorId } = req.usuario;
-    const { id } = req.params;
+    const { id: clienteId } = req.usuario;  
+    const { id: solicitudId } = req.params; 
 
-    const result = await completarSolicitudService(perfilTrabajadorId, id);
+    const result = await completarSolicitudService(clienteId, solicitudId);  // Llamamos al service
 
-    res.json({ success: true, solicitud: result });
+    res.json({ success: true, solicitud: result });  // Respondemos con el resultado
   } catch (error) {
     res.status(400).json({ success: false, error: error.message });
   }
 };
+
+
+
+
+export const getSolicitudesAceptadasController = async (req, res) => {
+  try {
+    const { id: clienteId } = req.usuario;  // el cliente que está autenticado
+
+    const solicitudes = await getSolicitudesAceptadasService(clienteId);
+
+    res.json({
+      success: true,
+      solicitudes,
+    });
+  } catch (error) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+};
+
 
 

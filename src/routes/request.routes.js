@@ -4,6 +4,7 @@ import {
   rechazarSolicitudController,
   getSolicitudesTrabajadorController,
   completarSolicitudController,
+    getSolicitudesAceptadasController
 } from "../controllers/request.controller.js";
 import { verifyToken } from "../middlewares/auth.middleware.js";
 
@@ -21,9 +22,14 @@ router.post("/request/:id/reject",
     verifyToken,
     rechazarSolicitudController);
 
-router.post("/request/:id/complete",
-    verifyToken,
-    completarSolicitudController
-)
+router.post("/request/:id/complete", 
+    verifyToken, 
+    completarSolicitudController);
+
+
+router.get("/request/accepted", 
+    verifyToken,  
+    getSolicitudesAceptadasController);
+
 
 export default router;
