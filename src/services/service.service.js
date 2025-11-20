@@ -124,3 +124,32 @@ export const getServiceByIdService = async (servicioId) => {
     }))
   };
 };
+
+export const desactivarServicioService = async (perfilTrabajadorId, servicioId) => {
+  // Verificar que el servicio exista y sea del trabajador
+  const servicio = await prisma.servicio.findUnique({
+    where: { id: servicioId },
+    select: { perfilTrabajadorId: true, esActivo: true }
+  });
+
+  if (!servicio) {
+    throw new Error("Servicio no encontrado.");
+  }
+
+  if (servicio.perfilTrabajadorId !== perfilTrabajadorId) {
+    throw new Error("No estás autorizado para eliminar este servicio.");
+  }
+
+  if (!servicio.esActivo) {
+    throw new Error("El servicio ya está desactivado.");
+  }
+
+  // Desactivar servicio
+  return await prisma.servicio.update({
+    where: { id: servicioId },
+    data: { 
+      esActivo: false,
+      estadoModeracion: "SUSPENDIDO" // opcional, pero recomendado
+    }
+  });
+};

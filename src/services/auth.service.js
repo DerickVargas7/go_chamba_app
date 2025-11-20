@@ -114,51 +114,67 @@ export const completeGoogleRegistration = async (data) => {
 };
 
 export const createUserService = async (data) => {
-  const {email, password, nombreCompleto, telefono, fotoUrl, direccion, departamento, tiene_whatsapp} = data;
+  const {
+    email,
+    password,
+    nombreCompleto,
+    telefono,
+    fotoUrl,
+    direccion,
+    departamento,
+    tiene_whatsapp
+  } = data;
 
-  // ... validaciones ...
+  try {
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-  const hashedPassword = await bcrypt.hash(password, 10);
-
-  const [user] = await prisma.$transaction(async (tx) => {
-    const createdUser = await tx.usuario.create({
-      data: {
-        email,
-        password: hashedPassword,
-        departamento,
-        es_configurado: true,
-        tiene_whatsapp: tiene_whatsapp,
-        perfil: {
-          create: {
-            nombreCompleto,
-            telefono,
-            direccion,
-            fotoUrl: fotoUrl || "",
+    const [user] = await prisma.$transaction(async (tx) => {
+      const createdUser = await tx.usuario.create({
+        data: {
+          email,
+          password: hashedPassword,
+          departamento,
+          es_configurado: true,
+          tiene_whatsapp,
+          perfil: {
+            create: {
+              nombreCompleto,
+              telefono,
+              direccion,
+              fotoUrl: fotoUrl || "",
+            },
           },
         },
-      },
-      include: { perfil: true },
+        include: { perfil: true },
+      });
+
+      await tx.usuarioRol.create({
+        data: {
+          usuarioId: createdUser.id,
+          rol: "CLIENTE",
+        },
+      });
+
+      return [createdUser];
     });
 
-    await tx.usuarioRol.create({
-      data: {
-        usuarioId: createdUser.id,
-        rol: "CLIENTE",
-      },
+    const token = generateAppToken({
+      usuarioId: user.id,
+      perfilId: user.perfil.id,
+      perfilTrabajadorId: null,
+      roles: ["CLIENTE"],
     });
 
-    return [createdUser];
-  });
+    return { user, token };
 
-  const token = generateAppToken({
-    usuarioId: user.id,
-    perfilId: user.perfil.id,
-    perfilTrabajadorId: null, // nuevo usuario solo es CLIENTE
-    roles: ['CLIENTE']
-  });
-
-  return { user, token };
+  } catch (error) {
+    if (error.code === "P2002") {
+      throw new Error("El correo electronico ya esta registrado. Intenta con otro.");
+    }
+    throw error;
+  }
 };
+
 
 export const loginUserService = async (email, password) => {
   const user = await prisma.usuario.findUnique({

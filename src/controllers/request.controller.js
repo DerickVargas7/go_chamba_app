@@ -74,17 +74,15 @@ export const completarSolicitudController = async (req, res) => {
 
 
 
-// controller
-// controller
 export const getSolicitudesAceptadasController = async (req, res) => {
   try {
-    const { id: clienteId } = req.usuario;  // el cliente autenticado
+    const { id: clienteId } = req.usuario;  // el cliente que está autenticado
 
     const solicitudes = await getSolicitudesAceptadasService(clienteId);
 
     res.json({
       success: true,
-      solicitudes,  // ya las solicitudes tienen la foto incluida
+      solicitudes,
     });
   } catch (error) {
     res.status(400).json({ success: false, error: error.message });
