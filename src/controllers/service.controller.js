@@ -1,4 +1,4 @@
-import { getAllServices, listAllPublicationsService, getServiceByIdService, desactivarServicioService} from "../services/service.service.js";
+import { getAllServices, listAllPublicationsService, getServiceByIdService, desactivarServicioService , listApprovedServicesOnly} from "../services/service.service.js";
 
 
 export const getAllServicesController = async (req, res) => {
@@ -38,6 +38,26 @@ export const listAllPublicationsController = async (req, res) => {
     });
   }
 };
+
+export const listApprovedServicesController = async (req, res) => {
+  try {
+    const servicios = await listApprovedServicesOnly();
+
+    return res.status(200).json({
+      success: true,
+      message: "Servicios aprobados obtenidos correctamente",
+      items: servicios,
+    });
+  } catch (error) {
+    //console.error("Error en listApprovedServicesController:", error);
+    return res.status(500).json({
+      success: false,
+      error: "Error al obtener los servicios aprobados",
+      details: error.message,
+    });
+  }
+};
+
 
 
 export const getServiceByIdController = async (req, res) => {

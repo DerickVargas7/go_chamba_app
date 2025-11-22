@@ -41,6 +41,9 @@ export const crearReseñaService = async (autorId, solicitudId, calificacion, co
 export const getReseñasPerfilService = async (usuarioId) => {
   return prisma.reseña.findMany({
     where: { objetivoId: usuarioId },
+    orderBy: {
+      creadoEn: "desc",
+    },
     include: {
       autor: {
         select: {

@@ -8,6 +8,8 @@ import workerRoutes from './src/routes/worker.routes.js';
 import clientRoutes from './src/routes/client.routes.js';
 import  requestRoutes  from "./src/routes/request.routes.js"
 import reviewRoutes from "./src/routes/review.routes.js"
+import reportRoutes from "./src/routes/report.routes.js"
+import adminRoutes from "./src/routes/admin.routes.js"
 
 dotenv.config();
 
@@ -31,6 +33,9 @@ app.use("/api", requestRoutes);
 
 app.use("/api", reviewRoutes);
 
+app.use("/api", reportRoutes);
+
+app.use("/api", adminRoutes);
 
 
 app.listen(port, () => {

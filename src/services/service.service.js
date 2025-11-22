@@ -5,7 +5,7 @@ export const getAllServices = async () => {
 
 }
 
-
+//funcion para listar todos los servicios sin distincion
 export const listAllPublicationsService = async ({
   page = 1,
   pageSize = 10,
@@ -90,6 +90,49 @@ export const listAllPublicationsService = async ({
   };
 };
 
+export const listApprovedServicesOnly = async () => {
+  const servicios = await prisma.servicio.findMany({
+    where: {
+      estadoModeracion: "APROBADO",
+    },
+    orderBy: { creadoEn: "desc" },
+    include: {
+      imagenes: true,
+      Oficio: { select: { id: true, nombre: true } },
+      PerfilTrabajador: {
+        include: {
+          perfil: {
+            select: {
+              nombreCompleto: true,
+              fotoUrl: true,
+              telefono: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return servicios.map((serv) => ({
+    id: serv.id,
+    titulo: serv.titulo,
+    descripcion: serv.descripcion,
+    precio: serv.precio,
+    oficio: {
+      id: serv.Oficio?.id || null,
+      nombre: serv.Oficio?.nombre || "Sin oficio",
+    },
+    trabajador: {
+      nombreCompleto: serv.PerfilTrabajador?.perfil?.nombreCompleto || "Desconocido",
+      fotoUrl: serv.PerfilTrabajador?.perfil?.fotoUrl || null,
+      telefono: serv.PerfilTrabajador?.perfil?.telefono || null,
+    },
+    imagenes: serv.imagenes.map((img) => img.imagenUrl),
+    creadoEn: serv.creadoEn,
+  }));
+};
+
+
 
 export const getServiceByIdService = async (servicioId) => {
   const servicio = await prisma.servicio.findUnique({
@@ -153,3 +196,4 @@ export const desactivarServicioService = async (perfilTrabajadorId, servicioId) 
     }
   });
 };
+
