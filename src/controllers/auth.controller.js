@@ -64,12 +64,22 @@ export const verifyGoogleAuth = async (req, res) => {
 
 export const completeGoogleRegistration = async (req, res) => {
   try {
-    const updatedUser = await completeGoogleRegistrationService(req.body);
-    return res.json({ message: "Perfil completado exitosamente", user: updatedUser });
+    const { user, token } = await completeGoogleRegistrationService(req.body);
+
+    return res.json({
+      success: true,
+      message: "Perfil completado exitosamente",
+      user,
+      token
+    });
   } catch (error) {
-    return res.status(500).json({ error: error.message || "Error completando registro" });
+    return res.status(500).json({
+      success: false,
+      error: error.message || "Error completando registro"
+    });
   }
 };
+
 
 
 export const createUserController = async (req, res) => {

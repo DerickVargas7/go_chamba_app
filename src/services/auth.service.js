@@ -78,16 +78,20 @@ export const findOrCreateGoogleUser = async (payload) => {
 export const completeGoogleRegistration = async (data) => {
   const { userId, nombreCompleto, direccion, departamento, telefono, password, fotoUrl, tiene_whatsapp } = data;
 
-  const user = await prisma.usuario.findUnique({ where: { id: userId }, include: { perfil: true } });
+  const user = await prisma.usuario.findUnique({
+    where: { id: userId },
+    include: { perfil: true, roles: true }
+  });
+
   if (!user) throw new Error("Usuario no encontrado");
 
-  // Validar si el teléfono ya está registrado por otro usuario
+  // Validar teléfono duplicado
   const existingPhone = await prisma.usuario.findUnique({ where: { telefono } });
   if (existingPhone && existingPhone.id !== userId) {
     throw new Error("El número de teléfono ya está registrado.");
   }
 
-  // Hash de contraseña si se ingresó
+  // Hash de contraseña si la ingresó
   const hashedPassword = password ? await bcrypt.hash(password, 10) : user.password;
 
   const updatedUser = await prisma.usuario.update({
@@ -107,10 +111,21 @@ export const completeGoogleRegistration = async (data) => {
         },
       },
     },
-    include: { perfil: true },
+    include: { perfil: true, roles: true },
   });
 
-  return updatedUser;
+  // Armamos roles para el token
+  const roleNames = updatedUser.roles.map(r => r.rol);
+
+  // GENERAMOS TOKEN
+  const token = generateAppToken({
+    usuarioId: updatedUser.id,
+    perfilId: updatedUser.perfil.id,
+    perfilTrabajadorId: null, 
+    roles: roleNames
+  });
+
+  return { user: updatedUser, token };
 };
 
 export const createUserService = async (data) => {
