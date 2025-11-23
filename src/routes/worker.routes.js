@@ -43,7 +43,6 @@ router.post(
 //ruta para listar publicaciones de trabajador
 router.get(
   '/worker/publications', 
-  
   verifyToken,
   requireRole("TRABAJADOR"),
   listPublicationsController);

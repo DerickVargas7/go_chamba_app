@@ -30,7 +30,9 @@ export const desestimarReporteService = async (reporteId, adminId) => {
   const reporte = await prisma.reporteServicio.findUnique({
     where: { id: reporteId },
   });
-
+ if(reporte.estado === "DESESTIMADO") {
+    throw new Error("El reporte ya ha sido desestimado.");
+  }
   if (!reporte) throw new Error("Reporte no encontrado.");
 
   return prisma.reporteServicio.update({
@@ -48,6 +50,10 @@ export const resolverReporteEliminandoServicioService = async (reporteId) => {
   const reporte = await prisma.reporteServicio.findUnique({
     where: { id: reporteId },
   });
+
+  if(reporte.estado === "RESUELTO") {
+    throw new Error("El reporte ya ha sido resuelto.");
+  }
 
   if (!reporte) throw new Error("Reporte no encontrado.");
 

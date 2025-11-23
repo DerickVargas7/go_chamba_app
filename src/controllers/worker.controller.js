@@ -47,21 +47,19 @@ export const createPublicationController = async (req, res) => {
 export async function listPublicationsController(req, res) {
   try {
     const { perfilTrabajadorId } = req.usuario;
-    const { page, pageSize, estado, buscar, order, oficioId } = req.query;
-    const data = await listPublicationsService(perfilTrabajadorId, {
-      page,
-      pageSize,
-      estado,
-      buscar,
-      order,
-      oficioId,
+    
+    const servicios = await listPublicationsService(perfilTrabajadorId);
+    
+    return res.json({ 
+      success: true, 
+      message: "Publicaciones aprobadas obtenidas correctamente",
+      items: servicios 
     });
-    return res.json({ success: true, ...data });
   } catch (err) {
     const status = err.status || 500;
     return res.status(status).json({
       success: false,
-      message: err.message || "Error interno",
+      message: err.message || "Error interno al obtener publicaciones aprobadas",
     });
   }
 }

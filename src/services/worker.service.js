@@ -86,87 +86,50 @@ export const createPublicationService = async (
   return result;
 };
 
-export async function listPublicationsService(
-  perfilTrabajadorId,
-  { page = 1, pageSize = 10, estado, buscar, order = "desc", oficioId }
-) {
-  const where = { perfilTrabajadorId };
-
-  if (estado) where.estadoModeracion = estado;
-  if (typeof oficioId !== "undefined") where.oficioId = Number(oficioId);
-
-  if (buscar && buscar.trim()) {
-    where.OR = [
-      { titulo: { contains: buscar, mode: "insensitive" } },
-      { descripcion: { contains: buscar, mode: "insensitive" } },
-    ];
-  }
-
-  const skip = (Number(page) - 1) * Number(pageSize);
-  const take = Number(pageSize);
-
-  const [items, total] = await Promise.all([
-    prisma.servicio.findMany({
-      where,
-      orderBy: { creadoEn: order === "asc" ? "asc" : "desc" },
-      skip,
-      take,
-      include: {
-        imagenes: true,
-        Oficio: {
-          select: { id: true, nombre: true },
-        },
-        PerfilTrabajador: {
-          include: {
-            perfil: {
-              select: {
-                nombreCompleto: true,
-                fotoUrl: true,
-                telefono: true,
-              },
+export async function listPublicationsService(perfilTrabajadorId) {
+  const servicios = await prisma.servicio.findMany({
+    where: {
+      perfilTrabajadorId,
+      estadoModeracion: "APROBADO",
+    },
+    orderBy: { creadoEn: "desc" },
+    include: {
+      imagenes: true,
+      Oficio: {
+        select: { id: true, nombre: true },
+      },
+      PerfilTrabajador: {
+        include: {
+          perfil: {
+            select: {
+              nombreCompleto: true,
+              fotoUrl: true,
+              telefono: true,
             },
           },
         },
       },
-    }),
-    prisma.servicio.count({ where }),
-  ]);
+    },
+  });
 
-  const formattedItems = items.map((serv) => ({
+  return servicios.map((serv) => ({
     id: serv.id,
     titulo: serv.titulo,
     descripcion: serv.descripcion,
     precio: serv.precio,
-    oficio: serv.Oficio
-      ? { id: serv.Oficio.id, nombre: serv.Oficio.nombre }
-      : { id: null, nombre: "Sin oficio" },
-    trabajador: serv.PerfilTrabajador?.perfil
-      ? {
-          nombreCompleto: serv.PerfilTrabajador.perfil.nombreCompleto,
-          fotoUrl: serv.PerfilTrabajador.perfil.fotoUrl,
-          telefono: serv.PerfilTrabajador.perfil.telefono,
-        }
-      : { nombreCompleto: "Desconocido", fotoUrl: null, telefono: null },
-    imagenes: serv.imagenes
-      .sort((a, b) => a.orden - b.orden)
-      .map((img) => ({
-        id: img.id,
-        url: img.imagenUrl,
-        orden: img.orden,
-      })),
-    creadoEn: serv.creadoEn,
     estadoModeracion: serv.estadoModeracion,
-  }));
-
-  return {
-    items: formattedItems,
-    pagination: {
-      page: Number(page),
-      pageSize: Number(pageSize),
-      total,
-      pages: Math.max(1, Math.ceil(total / Number(pageSize))),
+    oficio: {
+      id: serv.Oficio?.id || null,
+      nombre: serv.Oficio?.nombre || "Sin oficio",
     },
-  };
+    trabajador: {
+      nombreCompleto: serv.PerfilTrabajador?.perfil?.nombreCompleto || "Desconocido",
+      fotoUrl: serv.PerfilTrabajador?.perfil?.fotoUrl || null,
+      telefono: serv.PerfilTrabajador?.perfil?.telefono || null,
+    },
+    imagenes: serv.imagenes.map((img) => img.imagenUrl),
+    creadoEn: serv.creadoEn,
+  }));
 }
 
 export const updatePublicationService = async (servicioId, data) => {

@@ -48,7 +48,9 @@ export const aprobarServicioService = async (servicioId, adminId) => {
   const servicio = await prisma.servicio.findUnique({
     where: { id: servicioId },
   });
-
+  if(servicio.estadoModeracion === "APROBADO") {
+    throw new Error("El servicio ya ha sido aprobado.");
+  }
   if (!servicio) throw new Error("Servicio no encontrado.");
 
   return prisma.servicio.update({
@@ -66,7 +68,9 @@ export const rechazarServicioService = async (servicioId, adminId) => {
   const servicio = await prisma.servicio.findUnique({
     where: { id: servicioId },
   });
-
+   if(servicio.estadoModeracion === "RECHAZADO") {
+    throw new Error("El servicio ya ha sido rechazado.");
+  }
   if (!servicio) throw new Error("Servicio no encontrado.");
 
   return prisma.servicio.update({
