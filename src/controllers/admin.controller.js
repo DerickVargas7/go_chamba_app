@@ -2,22 +2,20 @@ import { getReportesAdminService, aprobarServicioService, rechazarServicioServic
 
 export const getReportesAdminController = async (req, res) => {
   try {
-    const { page, pageSize, estado, motivo } = req.query;
+    const reportes = await getReportesAdminService();
 
-    const data = await getReportesAdminService({
-      page,
-      pageSize,
-      estado,
-      motivo
-    });
-
-    res.json({
+    return res.status(200).json({
       success: true,
-      ...data
+      message: "Reportes pendientes obtenidos correctamente",
+      items: reportes,
     });
-
   } catch (error) {
-    res.status(400).json({ success: false, error: error.message });
+    //console.error("Error en listPendingReportsController:", error);
+    return res.status(500).json({
+      success: false,
+      error: "Error al obtener los reportes pendientes",
+      details: error.message,
+    });
   }
 };
 

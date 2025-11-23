@@ -1,76 +1,48 @@
 import prisma from "../../config/prismaClient.js";
 
-export const getReportesAdminService = async ({
-  page = 1,
-  pageSize = 10,
-  estado,         // PENDIENTE, EN_REVISION, RESUELTO, DESESTIMADO
-  motivo,         // filtro opcional
-}) => {
-  
-  const skip = (Number(page) - 1) * Number(pageSize);
-  const take = Number(pageSize);
-
-  const where = {};
-
-  if (estado) where.estado = estado;
-  if (motivo) where.motivo = motivo;
-
-  const [reportes, total] = await Promise.all([
-    prisma.reporteServicio.findMany({
-      where,
-      skip,
-      take,
-      orderBy: { creadoEn: "desc" },
-      include: {
-        servicio: {
-          select: {
-            id: true,
-            titulo: true,
-            descripcion: true,
-            precio: true,
-            oficioId: true,
-            PerfilTrabajador: {
-              include: {
-                perfil: {
-                  select: {
-                    nombreCompleto: true,
-                    fotoUrl: true
-                  }
+export const getReportesAdminService = async () => {
+  const reportes = await prisma.reporteServicio.findMany({
+    where: {
+      estado: "PENDIENTE",
+    },
+    orderBy: { creadoEn: "desc" },
+    include: {
+      servicio: {
+        select: {
+          id: true,
+          titulo: true,
+          descripcion: true,
+          precio: true,
+          oficioId: true,
+          PerfilTrabajador: {
+            include: {
+              perfil: {
+                select: {
+                  nombreCompleto: true,
+                  fotoUrl: true
                 }
               }
             }
           }
-        },
-        usuario: { // usuario que reportó
-          select: {
-            id: true,
-            email: true,
-            perfil: {
-              select: {
-                nombreCompleto: true,
-                fotoUrl: true,
-              }
+        }
+      },
+      usuario: { // usuario que reportó
+        select: {
+          id: true,
+          email: true,
+          perfil: {
+            select: {
+              nombreCompleto: true,
+              fotoUrl: true,
             }
           }
         }
       }
-    }),
-
-    prisma.reporteServicio.count({ where })
-  ]);
-
-  return {
-    items: reportes,
-    pagination: {
-      page: Number(page),
-      pageSize: Number(pageSize),
-      total,
-      pages: Math.max(1, Math.ceil(total / Number(pageSize))),
     }
-  };
+  });
+
+  return reportes;
 };
-
-
 
 export const aprobarServicioService = async (servicioId, adminId) => {
   const servicio = await prisma.servicio.findUnique({
