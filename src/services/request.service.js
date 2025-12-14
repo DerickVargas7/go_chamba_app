@@ -99,17 +99,89 @@ export const completarSolicitudService = async (clienteId, solicitudId) => {
 export const getSolicitudesAceptadasService = async (clienteId) => {
   const solicitudes = await prisma.solicitudServicio.findMany({
     where: {
-      clienteId,            // filtramos por cliente
-      estado: "ACEPTADA",   // solo solicitudes aceptadas
+      clienteId,
+      estado: "ACEPTADA",
     },
     include: {
-      servicio: true,        // incluir el servicio asociado
-      cliente: true,         // incluir el cliente
+      servicio: {
+        include: {
+          Oficio: {
+            select: {
+              nombre: true,
+            },
+          },
+          PerfilTrabajador: {
+            include: {
+              perfil: {
+                select: {
+                  nombreCompleto: true,
+                },
+              },
+            },
+          },
+        },
+      },
+      cliente: {
+        include: {
+          perfil: {
+            select: {
+              fotoUrl: true,
+            },
+          },
+        },
+      },
     },
   });
 
-  if (!solicitudes.length) throw new Error("No tienes solicitudes aceptadas.");
+  if (!solicitudes.length) return [];
 
-  return solicitudes;
+
+  return solicitudes.map((s) => ({
+    id: s.id,
+    clienteId: s.clienteId,
+    servicioId: s.servicioId,
+    estado: s.estado,
+    mensaje: s.mensaje,
+    fechaSolicitada: s.fechaSolicitada,
+    creadoEn: s.creadoEn,
+    actualizadoEn: s.actualizadoEn,
+
+    servicio: {
+      id: s.servicio.id,
+      trabajadorOficioId: s.servicio.trabajadorOficioId,
+      titulo: s.servicio.titulo,
+      descripcion: s.servicio.descripcion,
+      precio: s.servicio.precio,
+      esActivo: s.servicio.esActivo,
+      estadoModeracion: s.servicio.estadoModeracion,
+      creadoEn: s.servicio.creadoEn,
+      actualizadoEn: s.servicio.actualizadoEn,
+      perfilTrabajadorId: s.servicio.perfilTrabajadorId,
+      oficioId: s.servicio.oficioId,
+
+    
+      categoria: s.servicio.Oficio?.nombre || "Sin categoría",
+      trabajador: {
+        nombreCompleto:
+          s.servicio.PerfilTrabajador?.perfil?.nombreCompleto ||
+          "Trabajador",
+      },
+    },
+
+    cliente: {
+      id: s.cliente.id,
+      email: s.cliente.email,
+      imagenUrl: s.cliente.perfil?.fotoUrl || "",
+      password: s.cliente.password,
+      esActivo: s.cliente.esActivo,
+      creadoEn: s.cliente.creadoEn,
+      es_configurado: s.cliente.es_configurado,
+      actualizadoEn: s.cliente.actualizadoEn,
+      telefono: s.cliente.telefono,
+      googleId: s.cliente.googleId,
+      departamento: s.cliente.departamento,
+      tiene_whatsapp: s.cliente.tiene_whatsapp,
+    },
+  }));
 };
 
