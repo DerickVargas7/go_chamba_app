@@ -92,7 +92,7 @@ export async function listPublicationsService(
 ) {
   const where = {
     perfilTrabajadorId,
-    estadoModeracion: estado, // ✅ por defecto APROBADO
+    estadoModeracion: estado,
   };
 
   if (typeof oficioId !== "undefined") {
@@ -148,7 +148,7 @@ export async function listPublicationsService(
         .sort((a, b) => a.orden - b.orden)
         .map((img) => ({
           id: img.id,
-          imagenUrl: img.imagenUrl,
+          imagenUrl: img.imagenUrl, // ✅ Consistente con ServiceDb
           orden: img.orden,
         })),
       creadoEn: serv.creadoEn,
