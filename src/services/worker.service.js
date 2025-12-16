@@ -232,7 +232,7 @@ export async function listPublicationsService(perfilTrabajadorId) {
       .sort((a, b) => a.orden - b.orden)
       .map((img) => ({
         id: img.id,
-        imagenUrl: img.imagenUrl,
+        url: img.imagenUrl,
         orden: img.orden,
       })),
     creadoEn: serv.creadoEn,
