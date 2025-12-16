@@ -86,75 +86,9 @@ export const createPublicationService = async (
   return result;
 };
 
-export async function listPublicationsService(
-  perfilTrabajadorId,
-  { estado = "APROBADO", buscar, order = "desc", oficioId } = {}
-) {
-  const where = {
-    perfilTrabajadorId,
-    estadoModeracion: estado,
-  };
 
-  if (typeof oficioId !== "undefined") {
-    where.oficioId = String(oficioId);
-  }
 
-  if (buscar && buscar.trim()) {
-    where.OR = [
-      { titulo: { contains: buscar, mode: "insensitive" } },
-      { descripcion: { contains: buscar, mode: "insensitive" } },
-    ];
-  }
 
-  const servicios = await prisma.servicio.findMany({
-    where,
-    orderBy: { creadoEn: order === "asc" ? "asc" : "desc" },
-    include: {
-      imagenes: true,
-      Oficio: {
-        select: { id: true, nombre: true },
-      },
-      PerfilTrabajador: {
-        include: {
-          perfil: {
-            select: {
-              nombreCompleto: true,
-              fotoUrl: true,
-              telefono: true,
-            },
-          },
-        },
-      },
-    },
-  });
-
-  return {
-    items: servicios.map((serv) => ({
-      id: serv.id,
-      titulo: serv.titulo,
-      descripcion: serv.descripcion,
-      precio: serv.precio,
-      estadoModeracion: serv.estadoModeracion,
-      oficio: {
-        id: serv.Oficio?.id || null,
-        nombre: serv.Oficio?.nombre || "Sin oficio",
-      },
-      trabajador: {
-        nombreCompleto: serv.PerfilTrabajador?.perfil?.nombreCompleto ?? "Desconocido",
-        fotoUrl: serv.PerfilTrabajador?.perfil?.fotoUrl ?? null,
-        telefono: serv.PerfilTrabajador?.perfil?.telefono ?? null,
-      },
-      imagenes: serv.imagenes
-        .sort((a, b) => a.orden - b.orden)
-        .map((img) => ({
-          id: img.id,
-          imagenUrl: img.imagenUrl, // ✅ Consistente con ServiceDb
-          orden: img.orden,
-        })),
-      creadoEn: serv.creadoEn,
-    })),
-  };
-}
 
 
 
@@ -250,3 +184,57 @@ export const deleteServiceImageService = async (
 
   return { success: true, imagen_eliminada: imagenId };
 };
+
+
+export async function listPublicationsService(perfilTrabajadorId) {
+  const servicios = await prisma.servicio.findMany({
+    where: {
+      perfilTrabajadorId,
+      estadoModeracion: "APROBADO",
+    },
+    orderBy: { creadoEn: "desc" },
+    include: {
+      imagenes: true,
+      Oficio: {
+        select: { id: true, nombre: true },
+      },
+      PerfilTrabajador: {
+        include: {
+          perfil: {
+            select: {
+              nombreCompleto: true,
+              fotoUrl: true,
+              telefono: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return servicios.map((serv) => ({
+    id: serv.id,
+    titulo: serv.titulo,
+    descripcion: serv.descripcion,
+    precio: serv.precio,
+    estadoModeracion: serv.estadoModeracion,
+    oficio: {
+      id: serv.Oficio?.id || null,
+      nombre: serv.Oficio?.nombre || "Sin oficio",
+    },
+    trabajador: {
+      nombreCompleto: serv.PerfilTrabajador?.perfil?.nombreCompleto || "Desconocido",
+      fotoUrl: serv.PerfilTrabajador?.perfil?.fotoUrl || null,
+      telefono: serv.PerfilTrabajador?.perfil?.telefono || null,
+    },
+ 
+    imagenes: serv.imagenes
+      .sort((a, b) => a.orden - b.orden)
+      .map((img) => ({
+        id: img.id,
+        imagenUrl: img.imagenUrl,
+        orden: img.orden,
+      })),
+    creadoEn: serv.creadoEn,
+  }));
+}
