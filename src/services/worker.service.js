@@ -86,13 +86,29 @@ export const createPublicationService = async (
   return result;
 };
 
-export async function listPublicationsService(perfilTrabajadorId) {
+export async function listPublicationsService(
+  perfilTrabajadorId,
+  { estado = "APROBADO", buscar, order = "desc", oficioId } = {}
+) {
+  const where = {
+    perfilTrabajadorId,
+    estadoModeracion: estado, // ✅ por defecto APROBADO
+  };
+
+  if (typeof oficioId !== "undefined") {
+    where.oficioId = String(oficioId);
+  }
+
+  if (buscar && buscar.trim()) {
+    where.OR = [
+      { titulo: { contains: buscar, mode: "insensitive" } },
+      { descripcion: { contains: buscar, mode: "insensitive" } },
+    ];
+  }
+
   const servicios = await prisma.servicio.findMany({
-    where: {
-      perfilTrabajadorId,
-      estadoModeracion: "APROBADO",
-    },
-    orderBy: { creadoEn: "desc" },
+    where,
+    orderBy: { creadoEn: order === "asc" ? "asc" : "desc" },
     include: {
       imagenes: true,
       Oficio: {
@@ -112,25 +128,35 @@ export async function listPublicationsService(perfilTrabajadorId) {
     },
   });
 
-  return servicios.map((serv) => ({
-    id: serv.id,
-    titulo: serv.titulo,
-    descripcion: serv.descripcion,
-    precio: serv.precio,
-    estadoModeracion: serv.estadoModeracion,
-    oficio: {
-      id: serv.Oficio?.id || null,
-      nombre: serv.Oficio?.nombre || "Sin oficio",
-    },
-    trabajador: {
-      nombreCompleto: serv.PerfilTrabajador?.perfil?.nombreCompleto || "Desconocido",
-      fotoUrl: serv.PerfilTrabajador?.perfil?.fotoUrl || null,
-      telefono: serv.PerfilTrabajador?.perfil?.telefono || null,
-    },
-    imagenes: serv.imagenes.map((img) => img.imagenUrl),
-    creadoEn: serv.creadoEn,
-  }));
+  return {
+    items: servicios.map((serv) => ({
+      id: serv.id,
+      titulo: serv.titulo,
+      descripcion: serv.descripcion,
+      precio: serv.precio,
+      estadoModeracion: serv.estadoModeracion,
+      oficio: {
+        id: serv.Oficio?.id || null,
+        nombre: serv.Oficio?.nombre || "Sin oficio",
+      },
+      trabajador: {
+        nombreCompleto: serv.PerfilTrabajador?.perfil?.nombreCompleto ?? "Desconocido",
+        fotoUrl: serv.PerfilTrabajador?.perfil?.fotoUrl ?? null,
+        telefono: serv.PerfilTrabajador?.perfil?.telefono ?? null,
+      },
+      imagenes: serv.imagenes
+        .sort((a, b) => a.orden - b.orden)
+        .map((img) => ({
+          id: img.id,
+          imagenUrl: img.imagenUrl,
+          orden: img.orden,
+        })),
+      creadoEn: serv.creadoEn,
+    })),
+  };
 }
+
+
 
 export const updatePublicationService = async (servicioId, data) => {
   const { titulo, descripcion, precio, oficioId } = data;
